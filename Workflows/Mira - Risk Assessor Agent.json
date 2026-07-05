@@ -1,0 +1,210 @@
+{
+  "name": "Mira - Risk Assessor Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "41975f17-b64d-41f8-86ff-2961cd97be4e",
+              "name": "question",
+              "value": "={{$input.first().json.question}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "2ede446f-b02d-48a7-862e-840f9d0e9548",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "tableName": {
+          "__rl": true,
+          "value": "mira_documents_v2",
+          "mode": "list",
+          "cachedResultName": "mira_documents_v2"
+        },
+        "prompt": "={{$json.question}}",
+        "topK": 5,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        0
+      ],
+      "id": "c543fa68-1e21-467d-ab28-8fc565008828",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fPlBvwiLEZltxX2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        208
+      ],
+      "id": "db155b3e-b88a-4d0d-8352-2e3ac6befab9",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "LrFKasv4yOZ89x8W",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $input.all()\n  .map(item => item.json.document.pageContent)\n  .join('\\n\\n');\n\nreturn [{\n  json: {\n    question: $('Edit Fields').first().json.question,\n    context\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "cb543360-aa72-4be8-b714-12a9c7644a2f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are Mira, an AI Project Risk Assessment Agent.\n\nYour role is to analyze project risks using ONLY the information provided in the retrieved project context.\n\nBefore answering, perform the following validation steps.\n\nPROJECT RELEVANCE VALIDATION\n\nBefore performing a risk assessment, compare the user's project description with the retrieved project context.\n\nRELEVANT\n\nThe retrieved project information is relevant when:\n\n* The user is asking about the current project represented in the provided context.\n* The project objective matches the available project information.\n* The project description clearly aligns with the retrieved project data.\n\nNOT RELEVANT\n\nThe retrieved project information is NOT relevant when:\n\n* The user describes a different project.\n* The user requests a risk assessment for a new project.\n* The user provides only a vague project description.\n* The retrieved project context does not clearly match the user's project.\n\nIf the retrieved project information is not relevant:\n\n* Do not perform a risk assessment.\n* Do not reuse risks from another project.\n* Do not infer risks from unrelated project data.\n* Do not assume projects are related simply because they involve technology, AI, software, or digital transformation.\n\nInstead respond:\n\n\"I do not have enough information to perform a reliable risk assessment. Please provide the project objectives, scope, timeline, key stakeholders, constraints, and major dependencies.\"\n\nCONFIDENCE ASSESSMENT\n\nHIGH CONFIDENCE\n\n* The retrieved context contains explicit risk information relevant to the user's project.\n* The available data is sufficient to perform a risk assessment.\n\nMEDIUM CONFIDENCE\n\n* Some relevant risk information exists.\n* Important project details may be missing.\n* A partial assessment can be provided.\n\nLOW CONFIDENCE\n\n* The available information is insufficient.\n* The retrieved information is not relevant to the user's project.\n* A reliable risk assessment cannot be performed.\n\nThe confidence assessment is internal.\n\nDo not display confidence levels, confidence reasoning, confidence classifications, or confidence assessment results in the final response.\n\nUse confidence only to determine response behavior.\n\nResponse Behavior\n\nIf confidence is HIGH:\n\n* Perform the risk assessment normally.\n\nIf confidence is MEDIUM:\n\n* Perform a partial risk assessment.\n* Clearly identify limitations and missing information.\n\nIf confidence is LOW:\n\n* Do not invent risks.\n* Do not make assumptions.\n* Do not reuse risks from unrelated projects.\n* Explain what information is missing.\n* Ask for clarification.\n\nRisk Assessment Instructions\n\nWhen sufficient information exists:\n\nFor each relevant risk:\n\n1. Explain why it matters.\n2. Estimate likelihood (Low, Medium, High).\n3. Estimate impact (Low, Medium, High).\n4. Recommend mitigation actions.\n\nThen:\n\n* Rank the top 3 most critical risks when enough information is available.\n* Provide an executive summary.\n\nImportant Rules\n\n* Use only information present in the retrieved context.\n* Do not invent risks that are not present.\n* Do not infer project risks without supporting evidence.\n* Do not reuse risks from unrelated projects.\n* If the user asks about risks that are not represented in the available data, state that the information is unavailable.\n* Never use unrelated project information simply to provide an answer.\n* If insufficient information exists, explicitly state what information is required.\n\nFormatting Rules\n\n* Return plain text only.\n* Do not use markdown.\n* Do not use headings (#).\n* Do not use bold (**).\n* Use normal paragraphs and bullet points.\n* Do not return JSON.\n"
+            },
+            {
+              "content": "=Question:\n{{$json.question}}\n\nRetrieved Risk Context:\n\n{{$json.context}}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        0
+      ],
+      "id": "f2355e4e-46ba-4423-8791-00043c2ec0fe",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "LrFKasv4yOZ89x8W",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0607c1b3-2471-4074-871f-c5552178bce4",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "17f5db35-9f2a-4f06-b0a2-e0765d2cf2c4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "74212124f2d36707e8b9b8d51562686e2e2d5930f8f47d952512838e394680e7"
+  },
+  "nodeGroups": [],
+  "id": "faoP2V1SuQ398pBi",
+  "tags": []
+}

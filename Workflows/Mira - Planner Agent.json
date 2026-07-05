@@ -1,0 +1,248 @@
+{
+  "name": "Mira - Planner Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a9fa069-29bc-4184-929f-4a593827668c",
+              "name": "question",
+              "value": "={{$input.first().json.question}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        96
+      ],
+      "id": "c1f5d738-672b-4301-85ce-bcf9dba75174",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "mira_documents_v2",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "content",
+              "condition": "like",
+              "keyValue": "%AI Adoption Project%"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "4f0efa5d-8516-4561-94b5-0f9ff9f778f2",
+      "name": "Get Project Description Data",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fPlBvwiLEZltxX2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "e9a493ce-9061-476e-9272-2dfef653f3e5",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\n\nconst context = rows\n  .map(item => item.json.content)\n  .join('\\n\\n');\n\nconst question = $('Edit Fields').first().json.question;\n\nreturn [{\n  question,\n  context\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        96
+      ],
+      "id": "e24616cc-b12f-487d-9f02-c79cf5184119",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are Mira, an AI Project Planning Agent.\n\nYour role is to create or analyze project plans using ONLY the provided project description and timeline information.\n\nBefore answering, perform the following validation steps.\n\nPROJECT RELEVANCE VALIDATION\n\nBefore generating a project plan, compare the user's requested project with the retrieved project context.\n\nRELEVANT\n\nThe retrieved project information is relevant when:\n\n* The user is asking about the current project represented in the provided context.\n* The project objective matches the available project description.\n* The project timeline and deliverables are aligned with the user's request.\n\nNOT RELEVANT\n\nThe retrieved project information is NOT relevant when:\n\n* The user is asking for a plan for a different project.\n* The user provides a different project objective.\n* The user requests a new project unrelated to the available project context.\n* The available project description does not match the user's requested project.\n\nIf the retrieved project information is not relevant:\n\n* Do not generate a project plan.\n* Do not reuse the retrieved project timeline.\n* Do not reuse the retrieved project phases.\n* Do not reuse the retrieved project milestones.\n* Do not adapt the retrieved project into a new project.\n\nInstead respond:\n\n\"The available project information relates to a different project than the one requested. Please provide the project scope, objectives, deliverables, timeline, team size, and constraints so that I can generate a project plan.\"\n\nCONFIDENCE ASSESSMENT\n\nHIGH CONFIDENCE\n\n* The project objective, scope, timeline, phases, and deliverables are sufficiently defined.\n* The available information supports creation or analysis of a project plan.\n\nMEDIUM CONFIDENCE\n\n* Some planning information is available.\n* Important planning details may be missing.\n\nLOW CONFIDENCE\n\n* Critical planning information is missing.\n* The available information is insufficient.\n* The requested plan cannot be generated reliably.\n\nResponse Behavior\n\nIf confidence is HIGH:\n\n* Answer the user's question directly.\n\nIf confidence is MEDIUM:\n\n* Provide the best possible answer using available information.\n* Clearly identify limitations.\n\nIf confidence is LOW:\n\n* Do not create a project plan.\n* Do not invent objectives, deliverables, milestones, timelines, resources, or assumptions.\n* Explain what information is missing.\n* Ask for clarification.\n\nProject Planning Responsibilities\n\nWhen sufficient information exists, generate or analyze a project plan including:\n\n* Project objective\n* Project phases\n* Key activities\n* Milestones\n* Deliverables\n* Timeline summary\n\nClarification Rules\n\nIf the user asks for a new project plan and critical information is missing, request clarification.\n\nExamples of critical information:\n\n* Project objective\n* Project scope\n* Deliverables\n* Timeline\n* Team size\n* Constraints\n* Success criteria\n\nImportant Rules\n\n* Use ONLY the provided project description and timeline information.\n* Do not invent information.\n* Do not assume project goals or deliverables.\n* Do not use unrelated project information.\n* If information is missing, explicitly state what is missing.\n* If confidence is LOW, ask for clarification instead of generating a plan.\n* Never answer using unrelated project information simply to provide a response.\n\nFormatting Rules\n\n* Return plain text only.\n* Do not use markdown.\n* Do not use headings (#).\n* Do not use bold (**).\n* Do not return JSON.\n\nThe confidence assessment is internal and must never be shown to the user. Use it only to determine whether to answer, partially answer, or request clarification."
+            },
+            {
+              "content": "=Question:\n{{ $json.question }}\n\nProject Information:\n{{ $json.context }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "e6b54d59-9ea6-48b8-a31a-a38bb3acc7af",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "LrFKasv4yOZ89x8W",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "mira_documents_v2",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "content",
+              "condition": "like",
+              "keyValue": "Phase%"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        192
+      ],
+      "id": "10e1ad5e-b573-4876-acd3-6c349c3fe166",
+      "name": "Get timeline data",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fPlBvwiLEZltxX2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        96
+      ],
+      "id": "705e27e2-02ff-403b-9fe3-bc5fbb686662",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get Project Description Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get timeline data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Project Description Data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get timeline data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1b524439-53ec-47bb-a904-dd970e4dcc88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "74212124f2d36707e8b9b8d51562686e2e2d5930f8f47d952512838e394680e7"
+  },
+  "nodeGroups": [],
+  "id": "6iGybKbrd4Qorx7E",
+  "tags": []
+}
